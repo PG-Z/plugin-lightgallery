@@ -6,7 +6,7 @@ metadata:
     store.halo.run/app-id: app-OoggD
 spec:
   enabled: true
-  requires: ">=2.10.0"
+  requires: '>=2.17.0'
   author:
     name: Halo
     website: https://github.com/halo-dev
@@ -16,8 +16,9 @@ spec:
   homepage: https://www.halo.run/store/apps/app-OoggD
   repo: https://github.com/halo-sigs/plugin-lightgallery
   issues: https://github.com/halo-sigs/plugin-lightgallery/issues
-  displayName: "lightgallery.js 灯箱"
-  description: "提供对 lightgallery.js 的集成，支持在内容页放大显示图片"
+  displayName: lightgallery.js 灯箱
+  description: 提供对 lightgallery.js 的集成，支持在内容页放大显示图片
   license:
-    - name: "GPL-3.0"
-      url: "https://github.com/halo-sigs/plugin-lightgallery/blob/main/LICENSE"
+  - name: GPL-3.0
+    url: https://github.com/halo-sigs/plugin-lightgallery/blob/main/LICENSE
+  version: 1.2.22

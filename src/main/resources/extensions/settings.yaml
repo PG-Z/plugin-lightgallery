@@ -12,6 +12,11 @@ spec:
           label: 内容页面匹配
           name: dom_selector
           value: ""
+        - $formkit: text
+          name: imgAttr
+          label: 图片属性
+          help: 获取放大显示图片的路径，如：data-original，不填写则默认为src
+          value: ""
         - $formkit: repeater
           name: rules
           label: 页面匹配规则

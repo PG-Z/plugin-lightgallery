@@ -5,6 +5,7 @@ import static org.apache.commons.lang3.StringUtils.defaultIfBlank;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
+
 import io.micrometer.common.util.StringUtils;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
@@ -43,20 +44,36 @@ public class LightGalleryHeadProcessor implements TemplateHeadProcessor {
                     final IModelFactory modelFactory = context.getModelFactory();
                     String domSelector = basicConfig.getDom_selector();
                     if (StringUtils.isNotBlank(domSelector) && isContentTemplate(context)) {
-                        model.add(modelFactory.createText(lightGalleryScript(Set.of(domSelector))));
+                        model.add(modelFactory.createText(lightGalleryScript(Set.of(domSelector), basicConfig)));
                     }
 
                     MatchResult matchResult = isRequestPathMatchingRoute(context, basicConfig);
                     if (!matchResult.matched()) {
                         return;
                     }
-                    model.add(modelFactory.createText(lightGalleryScript(matchResult.domSelectors())));
+                    model.add(modelFactory.createText(lightGalleryScript(matchResult.domSelectors(), basicConfig)));
                 })
                 .onErrorResume(e -> {
                     log.error("LightGalleryHeadProcessor process failed", e);
                     return Mono.empty();
                 })
                 .then();
+    }
+
+    static String lightGalleryScript(Set<String> domSelectors, BasicConfig basicConfig) {
+        return """
+                <!-- PluginLightGallery start -->
+                <link href="/plugins/PluginLightGallery/assets/static/css/lightgallery.min.css" rel="stylesheet" />
+                <script defer src="/plugins/PluginLightGallery/assets/static/js/lightgallery.min.js"></script>
+                <!-- PluginLightGallery zoom plugin -->
+                <script defer src="/plugins/PluginLightGallery/assets/static/js/plugins/zoom/lg-zoom.min.js"></script>
+                <script type="text/javascript">
+                    document.addEventListener("DOMContentLoaded", function () {
+                       %s
+                    });
+                </script>
+                <!-- PluginLightGallery end -->
+                """.formatted(instantiateGallery(domSelectors, basicConfig));
     }
 
     static String lightGalleryScript(Set<String> domSelectors) {
@@ -73,6 +90,37 @@ public class LightGalleryHeadProcessor implements TemplateHeadProcessor {
                 </script>
                 <!-- PluginLightGallery end -->
                 """.formatted(instantiateGallery(domSelectors));
+    }
+
+    static String instantiateGallery(Set<String> domSelectors, BasicConfig basicConfig) {
+        return domSelectors.stream()
+                .map(domSelector -> """
+                        document.querySelectorAll(`%s img`)?.forEach(function (node) {
+                               if (node) {
+                                   var imgAttr = `%s`;
+                                   var imgUrl = '';
+                                   if (imgAttr !== '' && imgAttr !== null) {
+                                       imgUrl = node.getAttribute(imgAttr);
+                                   }
+                                   if (imgUrl === '' || imgUrl === null) {
+                                       imgUrl = node.src;
+                                   }
+                                   node.dataset.src = imgUrl;
+                               }
+                           
+                               const galleries = document.querySelectorAll(`%s`);
+                           
+                               if (galleries.length > 0) {
+                                   galleries.forEach(function (node) {
+                                       lightGallery(node, {
+                                           selector: "img",
+                                       });
+                                   });
+                               }
+                           });
+                        """.formatted(domSelector, basicConfig.getImgAttr(), domSelector)
+                )
+                .collect(Collectors.joining("\n"));
     }
 
     static String instantiateGallery(Set<String> domSelectors) {
@@ -140,7 +188,12 @@ public class LightGalleryHeadProcessor implements TemplateHeadProcessor {
     @Data
     public static class BasicConfig {
         String dom_selector;
+        private String imgAttr;
         List<PathMatchRule> rules;
+
+        public static BasicConfig of() {
+            return new BasicConfig();
+        }
 
         public List<PathMatchRule> nullSafeRules() {
             return ObjectUtils.defaultIfNull(rules, List.of());
